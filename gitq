@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+const baseParams = ["log", "--pretty=format:'%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s'", "--date=short"];
+
+const reFrom = /from\s(\d{4}-\d{2}-\d{2})/i;
+const reTo = /to\s(\d{4}-\d{2}-\d{2})/i;
+const reBy = /by\s(.*)\s*(and|with)?/i;
+const reWith = /with\s(.*)/i;
+
+const param = process.argv.splice(2).join(' ');
+
+const buildQuery = param => {
+    let query = [];
+    const matchFrom = param.match(reFrom);
+    if (matchFrom) {
+        const from = matchFrom.length > 1 && matchFrom[1];
+        if (from) query.push('--since=' + from);
+        param = param.replace(matchFrom[0], '');
+    }
+    const matchTo = param.match(reTo);
+    if (matchTo) {
+        const to = matchTo.length > 1 && matchTo[1];
+        if (to) query.push('--until=' + to);
+        param = param.replace(matchTo[0], '');
+    }
+    const matchWith = param.trim().match(reWith);
+    if (matchWith) {
+        query.push('--grep="' + matchWith[1] + '"');
+        param = param.replace(matchWith[0], '');
+    }
+    const matchBy = param.match(reBy);
+    if (matchBy) {
+        query.push('--author="' + matchBy[1].replace(' and ', '').trim() + '"');
+        param = param.replace(matchBy[0], '');
+    }    
+    return query;
+};
+
+const commandParams = baseParams.concat(buildQuery(param));
+require('child_process').spawn("git", commandParams, {stdio: 'inherit', shell: true});
